@@ -21,41 +21,16 @@
 
 import seaborn as sns
 import pandas as pd
-import seaborn.objects as so
+import numpy as np
+from sklearn.decomposition import PCA
 
-from sklearn.datasets import make_hastie_10_2
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.inspection import PartialDependenceDisplay
 from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-
-
-def spending_by_category_by_gender():
-
-    df = pd.read_csv("customer_shopping_data.csv")
-    male_spending_credit = df.groupby(["gender", "payment_method"])
-    # male_spending_debit
-    # male_spending_cash
-
-    # female_spending_credit
-    # female_spending_debit
-    # female_spending_cash
-    sns.catplot(data=male_spending_credit, x="gender", y="payment_method", kind="count")
-
-
-def spending_by_payment_method():
-    df = pd.read_csv("customer_shopping_data.csv")
-
-    sns.catplot(data=df, x="payment_method", y="price", kind="bar")
-
-
-def spending_by_gender_swarm():
-    df = pd.read_csv("customer_shopping_data.csv").head(1000)
-
-    # sns.catplot(data=df, x="gender", y="price", kind="swarm")
-    # sns.stripplot(data=df, x="gender", y="price")
-    sns.displot(data=df, x="gender", y="price")
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 
 
 def partial_dependence():
@@ -92,10 +67,9 @@ def partial_dependence():
     PartialDependenceDisplay.from_estimator(LR, X, features=[0, 1, 2])
     # PartialDependenceDisplay.from_estimator(clf, X, features=[1])
 
-
-def partial_dependence_payment_method():
+def CustomerSales(max_data_usage=100):
     # Use .drop(columns=['A', 'B', 'C']) to drop by column name or .drop([0, 1, 2]) to drop by index
-    df = pd.read_csv("customer_shopping_data.csv").head(100)
+    df = pd.read_csv("customer_shopping_data.csv").head(max_data_usage)
 
     # Replace 'Male' and 'Female' with 0 and 1
     df['gender'] = df['gender'].replace({'Male': 0, 'Female': 1})
@@ -113,53 +87,50 @@ def partial_dependence_payment_method():
     onehot_encoded = onehot_encoder.fit_transform(df[['payment_method']]).toarray()
     onehot_encoded_df = pd.DataFrame(onehot_encoded, columns=onehot_encoder.get_feature_names_out(['payment_method']))
     df_encoded = pd.concat([df, onehot_encoded_df], axis=1).drop('payment_method', axis=1)
-    print(df_encoded.keys())
 
-    X = df_encoded.drop('price', axis=1)
-    y = df_encoded['price']
+    return df_encoded
+def preprocessor(X):
+    std_scaler = StandardScaler().fit(X)
+    min_max_scaler = MinMaxScaler().fit(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True)
+    return X
+def KNR(max_data_usage=100):
+    df = CustomerSales(max_data_usage=max_data_usage)
 
-    LR = LinearRegression().fit(X, y)
+    X = df.drop('price', axis=1)
+    X = preprocessor(X)
 
-    PartialDependenceDisplay.from_estimator(LR, X, features=[0, 1, 2, 3, 4, 5])
-
-
-def partial_dependence_using_df2():
-
-    import DataFrame2
-    from Utilities import staggered_partial_dependence_displays
-
-    # Use .drop(columns=['A', 'B', 'C']) to drop by column name or .drop([0, 1, 2]) to drop by index
-    df2 = DataFrame2.DataFrame2()
-    df2.set_inner_frame(updated_frame=pd.read_csv("customer_shopping_data.csv").head(100))
-    df = df2.get_inner_frame()
-    # Replace 'Male' and 'Female' with 0 and 1
-    df['gender'] = df['gender'].replace({'Male': 0, 'Female': 1})
-
-    del df["invoice_no"]
-    del df["customer_id"]
-    # del df["age"]
-    # del df["category"]
-    # del df["quantity"]
-    # del df["payment_method"]
-    del df["invoice_date"]
-    del df["shopping_mall"]
-
-    df_encoded = df2.multi_onehot_encoding(["category", "payment_method"], drop=True)
-
-    print(df_encoded.keys())
-
-    X = df_encoded.drop('price', axis=1)
-    y = df_encoded['price']
-
-    # Todo df_encoded = df2.create_variables(y) returns X as all but y parameter in df2 features
+    y = df['price']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True)
 
-    LR = LinearRegression().fit(X, y)
+    p1 = Pipeline([('K-Neighbors Regression', KNeighborsRegressor(n_neighbors=7))])
 
-    # Create a Partial Dependence Display of all features in the X dataframe.
-    features = list(range(len(X.columns)))
-    # PartialDependenceDisplay.from_estimator(LR, X, features=features)
-    staggered_partial_dependence_displays(LR, X, feature_indexes=features)
+    fit_and_print(p1, X_train, y_train, X_test, y_test)
+def LR(max_data_usage=100):
+    df = CustomerSales(max_data_usage=max_data_usage)
+
+    X = df.drop('price', axis=1)
+    X = preprocessor(X)
+
+    y = df['price']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True)
+
+    p1 = Pipeline([('Linear Regression', LinearRegression())])
+
+    fit_and_print(p1, X_train, y_train, X_test, y_test)
+def RF():
+    return 1
+def fit_and_print(p, X_train, y_train, X_test, y_test):
+    # Todo make functions for KNR, LR, and RF regressors to plug into this function
+    #  and analyze the differences in performance
+    #  Also, implement cross-validation for each to improve scoring
+    p.fit(X_train, y_train)
+    train_preds = p.predict(X_train)
+    test_preds = p.predict(X_test)
+
+    print('Training error: ' + str(mean_absolute_error(train_preds, y_train)))
+    print('Test error: ' + str(mean_absolute_error(test_preds, y_test)))
+
+

@@ -27,7 +27,6 @@ def staggered_partial_dependence_displays(model, df, feature_indexes, max_buffer
         current_list.append(feature)
         count += 1
 
-
         if count == max_buffer:
             master_list.append(current_list)
             current_list = []
