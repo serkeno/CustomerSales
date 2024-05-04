@@ -19,17 +19,19 @@
 
  """
 
-import seaborn as sns
 import pandas as pd
-import numpy as np
-from sklearn.decomposition import PCA
 
 from sklearn.inspection import PartialDependenceDisplay
+
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import RandomForestRegressor
+
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
+
 from sklearn.pipeline import Pipeline
+
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 
 
@@ -76,10 +78,6 @@ def CustomerSales(max_data_usage=100):
 
     del df["invoice_no"]
     del df["customer_id"]
-    # del df["age"]
-    del df["category"]
-    # del df["quantity"]
-    # del df["payment_method"]
     del df["invoice_date"]
     del df["shopping_mall"]
 
@@ -87,6 +85,11 @@ def CustomerSales(max_data_usage=100):
     onehot_encoded = onehot_encoder.fit_transform(df[['payment_method']]).toarray()
     onehot_encoded_df = pd.DataFrame(onehot_encoded, columns=onehot_encoder.get_feature_names_out(['payment_method']))
     df_encoded = pd.concat([df, onehot_encoded_df], axis=1).drop('payment_method', axis=1)
+
+    onehot_encoder = OneHotEncoder()
+    onehot_encoded = onehot_encoder.fit_transform(df[['category']]).toarray()
+    onehot_encoded_df = pd.DataFrame(onehot_encoded, columns=onehot_encoder.get_feature_names_out(['category']))
+    df_encoded = pd.concat([df, onehot_encoded_df], axis=1).drop('category', axis=1)
 
     return df_encoded
 def preprocessor(X):
@@ -107,6 +110,8 @@ def KNR(max_data_usage=100):
     p1 = Pipeline([('K-Neighbors Regression', KNeighborsRegressor(n_neighbors=7))])
 
     fit_and_print(p1, X_train, y_train, X_test, y_test)
+
+    return p1
 def LR(max_data_usage=100):
     df = CustomerSales(max_data_usage=max_data_usage)
 
@@ -119,13 +124,30 @@ def LR(max_data_usage=100):
 
     p1 = Pipeline([('Linear Regression', LinearRegression())])
 
+    print(X.keys())
     fit_and_print(p1, X_train, y_train, X_test, y_test)
-def RF():
-    return 1
+
+    return p1
+def RF(max_data_usage=100):
+    df = CustomerSales(max_data_usage=max_data_usage)
+
+    X = df.drop('price', axis=1)
+    X = preprocessor(X)
+
+    y = df['price']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True)
+
+    p1 = Pipeline([('Random Forest', RandomForestRegressor())])
+
+    fit_and_print(p1, X_train, y_train, X_test, y_test)
+
+    return p1
 def fit_and_print(p, X_train, y_train, X_test, y_test):
-    # Todo make functions for KNR, LR, and RF regressors to plug into this function
-    #  and analyze the differences in performance
-    #  Also, implement cross-validation for each to improve scoring
+
+    #  Todo Also, implement cross-validation for each to improve scoring
+    #   Implement automated parameter search for tuning, this can be found from the heart risk files
+    # Todo Figure out how to map a new X record and predict a y outcome for it using the trained model.
     p.fit(X_train, y_train)
     train_preds = p.predict(X_train)
     test_preds = p.predict(X_test)
@@ -134,3 +156,19 @@ def fit_and_print(p, X_train, y_train, X_test, y_test):
     print('Test error: ' + str(mean_absolute_error(test_preds, y_test)))
 
 
+def single_prediction(model, record):
+    """
+    Takes a single record and a trained model or pipeline to perform prediction on, printing the result to console and
+    returning it.
+    :param model: Takes a trained model or pipeline.
+    :param record: A single record supplied as a Numpy Array
+    :return: Returns a ndarray of shape (n_samples), or (n_samples, n_targets) see sklearn.com .predict() docs for more
+    info
+    """
+    single_record = record
+
+    prediction = model.predict(single_record)
+
+    print("Prediction:", prediction)
+
+    return prediction
