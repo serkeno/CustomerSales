@@ -35,6 +35,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 
 
+#  Todo Also, implement cross-validation for each to improve scoring
+#   Implement automated parameter search for tuning, this can be found from the heart risk files
 def partial_dependence():
     # Use .drop(columns=['A', 'B', 'C']) to drop by column name or .drop([0, 1, 2]) to drop by index
     df = pd.read_csv("customer_shopping_data.csv").head(100)
@@ -82,14 +84,15 @@ def CustomerSales(max_data_usage=100):
     del df["shopping_mall"]
 
     onehot_encoder = OneHotEncoder()
-    onehot_encoded = onehot_encoder.fit_transform(df[['payment_method']]).toarray()
-    onehot_encoded_df = pd.DataFrame(onehot_encoded, columns=onehot_encoder.get_feature_names_out(['payment_method']))
-    df_encoded = pd.concat([df, onehot_encoded_df], axis=1).drop('payment_method', axis=1)
 
-    onehot_encoder = OneHotEncoder()
-    onehot_encoded = onehot_encoder.fit_transform(df[['category']]).toarray()
-    onehot_encoded_df = pd.DataFrame(onehot_encoded, columns=onehot_encoder.get_feature_names_out(['category']))
-    df_encoded = pd.concat([df, onehot_encoded_df], axis=1).drop('category', axis=1)
+    onehot_encoded_payment = onehot_encoder.fit_transform(df[['payment_method']]).toarray()
+    onehot_encoded_payment_df = pd.DataFrame(onehot_encoded_payment, columns=onehot_encoder.get_feature_names_out(['payment_method']))
+
+    onehot_encoded_category = onehot_encoder.fit_transform(df[['category']]).toarray()
+    onehot_encoded_category_df = pd.DataFrame(onehot_encoded_category, columns=onehot_encoder.get_feature_names_out(['category']))
+
+    df_encoded = pd.concat([df, onehot_encoded_payment_df, onehot_encoded_category_df], axis=1).drop(
+        ['payment_method', 'category'], axis=1)
 
     return df_encoded
 def preprocessor(X):
@@ -145,9 +148,6 @@ def RF(max_data_usage=100):
     return p1
 def fit_and_print(p, X_train, y_train, X_test, y_test):
 
-    #  Todo Also, implement cross-validation for each to improve scoring
-    #   Implement automated parameter search for tuning, this can be found from the heart risk files
-    # Todo Figure out how to map a new X record and predict a y outcome for it using the trained model.
     p.fit(X_train, y_train)
     train_preds = p.predict(X_train)
     test_preds = p.predict(X_test)
