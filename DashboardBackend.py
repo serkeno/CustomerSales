@@ -34,9 +34,6 @@ from sklearn.pipeline import Pipeline
 
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MinMaxScaler
 
-
-#  Todo Also, implement cross-validation for each to improve scoring
-#   Implement automated parameter search for tuning, this can be found from the heart risk files
 def partial_dependence():
     # Use .drop(columns=['A', 'B', 'C']) to drop by column name or .drop([0, 1, 2]) to drop by index
     df = pd.read_csv("customer_shopping_data.csv").head(100)
