@@ -72,10 +72,17 @@ def partial_dependence():
     # PartialDependenceDisplay.from_estimator(clf, X, features=[1])
 
 def CustomerSales(max_data_usage=100):
-    # Use .drop(columns=['A', 'B', 'C']) to drop by column name or .drop([0, 1, 2]) to drop by index
-    df = pd.read_csv("customer_shopping_data.csv").head(max_data_usage)
+
+    # Place csv data into a dataframe
+    df = pd.read_csv("customer_shopping_data.csv")
+
+    # Check to see if max_data_usage is higher than number of rows, using all rows if it is higher.
+    if max_data_usage <= df.shape[0]:
+        df = pd.read_csv("customer_shopping_data.csv").head(max_data_usage)
 
     # Replace 'Male' and 'Female' with 0 and 1
+    # pd.set_option is used to opt into future behaviour, specifically to remove silent downcasting in .replace()
+    pd.set_option('future.no_silent_downcasting', True)
     df['gender'] = df['gender'].replace({'Male': 0, 'Female': 1})
 
     del df["invoice_no"]
