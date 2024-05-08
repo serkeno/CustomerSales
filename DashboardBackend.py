@@ -28,7 +28,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, GridSearchCV
 
 from sklearn.pipeline import Pipeline
 
@@ -105,6 +105,7 @@ def preprocessor(X):
 
     return X
 def KNR(max_data_usage=100):
+
     df = CustomerSales(max_data_usage=max_data_usage)
 
     X = df.drop('price', axis=1)
@@ -114,12 +115,22 @@ def KNR(max_data_usage=100):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, shuffle=True)
 
-    p1 = Pipeline([('K-Neighbors Regression', KNeighborsRegressor(n_neighbors=7))])
+    p1 = Pipeline([('K-Neighbors Regression', KNeighborsRegressor())])
 
-    fit_and_print(p1, X_train, y_train, X_test, y_test)
+    param_grid = {
+        'K-Neighbors Regression__n_neighbors': [3, 5, 7, 9],  # Number of neighbors to consider
+        'K-Neighbors Regression__weights': ['uniform', 'distance'],  # Weight function used in prediction
+        'K-Neighbors Regression__algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'],  # Algorithm used to compute the nearest neighbors
+        'K-Neighbors Regression__leaf_size': [10, 20, 30],  # Leaf size passed to BallTree or KDTree
+    }
 
-    return p1
+    grid_search = GridSearchCV(estimator=p1, param_grid=param_grid, cv=5)
+
+    fit_and_print(grid_search, X_train, y_train, X_test, y_test)
+
+    return p1.fit(X_train, y_train)
 def LR(max_data_usage=100):
+
     df = CustomerSales(max_data_usage=max_data_usage)
 
     X = df.drop('price', axis=1)
@@ -131,10 +142,13 @@ def LR(max_data_usage=100):
 
     p1 = Pipeline([('Linear Regression', LinearRegression())])
 
-    print(X.keys())
-    fit_and_print(p1, X_train, y_train, X_test, y_test)
+    param_grid = {'Linear Regression__fit_intercept': [True, False]}
 
-    return p1
+    grid_search = GridSearchCV(estimator=p1, cv=5, param_grid=param_grid)
+
+    fit_and_print(grid_search, X_train, y_train, X_test, y_test)
+
+    return p1.fit(X_train, y_train)
 def RF(max_data_usage=100):
     df = CustomerSales(max_data_usage=max_data_usage)
 
@@ -147,9 +161,22 @@ def RF(max_data_usage=100):
 
     p1 = Pipeline([('Random Forest', RandomForestRegressor())])
 
-    fit_and_print(p1, X_train, y_train, X_test, y_test)
+    param_grid = {
+        'Random Forest__n_estimators': [50, 100, 200],
+        'Random Forest__max_depth': [None, 10, 20],
+        'Random Forest__min_samples_split': [2, 5, 10],
+        'Random Forest__min_samples_leaf': [1, 2, 4],
+        'Random Forest__max_features': ['auto', 'sqrt'],
+        'Random Forest__bootstrap': [True, False],
+        'Random Forest__random_state': [1],  # Set a specific random state for reproducibility
+        'Random Forest__n_jobs': [-1]  # Use all available cores for parallel processing
+    }
 
-    return p1
+    grid_search = GridSearchCV(estimator=p1, param_grid=param_grid, cv=2)
+
+    fit_and_print(grid_search, X_train, y_train, X_test, y_test)
+
+    return p1.fit(X_train, y_train)
 def fit_and_print(p, X_train, y_train, X_test, y_test):
 
     p.fit(X_train, y_train)
@@ -160,18 +187,18 @@ def fit_and_print(p, X_train, y_train, X_test, y_test):
     print('Test error: ' + str(mean_absolute_error(test_preds, y_test)))
 
 
-def single_prediction(model, record):
+def single_prediction(fitted_model, record):
     """
     Takes a single record and a trained model or pipeline to perform prediction on, printing the result to console and
     returning it.
-    :param model: Takes a trained model or pipeline.
+    :param fitted_model: Takes a trained model or pipeline.
     :param record: A single record supplied as a Numpy Array
     :return: Returns a ndarray of shape (n_samples), or (n_samples, n_targets) see sklearn.com .predict() docs for more
     info
     """
     single_record = record
 
-    prediction = model.predict(single_record)
+    prediction = fitted_model.predict(single_record)
 
     print("Prediction:", prediction)
 

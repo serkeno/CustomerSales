@@ -7,6 +7,6 @@ import DashboardBackend
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    DashboardBackend.partial_dependence()
+   print("Welcome")
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
